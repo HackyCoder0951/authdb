@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongo:
+    image: mongo:latest
+    container_name: authdb-mongo-service
+    ports:
+      - "27018:27017" # Map to 27018 to avoid conflict with existing local mongo on 27017
+    volumes:
+      - mongo_data:/data/db
+
+  # Backend Service
+  backend:
+    build: ./backend
+    container_name: authdb-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017
+      - DB_NAME=authdb
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - SECRET_KEY=supersecretkey # Change this in production
+    depends_on:
+      - mongo
+    volumes:
+       - ./backend:/app # Hot reload for dev (optional, but good for "running services")
+
+  # Frontend Service
+  frontend:
+    build: ./frontend
+    container_name: authdb-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
