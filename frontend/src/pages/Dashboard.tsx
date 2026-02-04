@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useToast } from '../context/ToastContext';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ const Dashboard: React.FC = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDesc, setNewTaskDesc] = useState('');
+    const { showToast } = useToast();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -43,6 +45,7 @@ const Dashboard: React.FC = () => {
             });
             setNewTaskTitle('');
             setNewTaskDesc('');
+            showToast('Task created successfully', 'success');
             fetchTasks();
         } catch (err) {
             console.error('Dashboard: Create failed', err);
@@ -52,6 +55,7 @@ const Dashboard: React.FC = () => {
     const handleDeleteTask = async (taskId: string) => {
         try {
             await api.delete(`/tasks/${taskId}`);
+            showToast('Task deleted successfully', 'success');
             fetchTasks();
         } catch (err) {
             console.error('Dashboard: Delete failed', err);

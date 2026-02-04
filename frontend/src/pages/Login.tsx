@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import { useToast } from '../context/ToastContext';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -6,13 +7,12 @@ import { useNavigate, Link } from 'react-router-dom';
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const { showToast } = useToast();
     const auth = useContext(AuthContext);
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
         try {
             const formData = new FormData();
             formData.append('username', email);
@@ -23,10 +23,12 @@ const Login: React.FC = () => {
             });
 
             auth?.login(response.data.access_token);
+            showToast('Login successful!', 'success');
             navigate('/dashboard');
         } catch (err: any) {
             console.error('Login: Failed', err.response?.data);
-            setError(err.response?.data?.detail || 'Login failed');
+            // Error is handled globally efficiently, but we can be specific if needed.
+            // keeping it simple as global interceptor handles 401/etc.
         }
     };
 
@@ -34,7 +36,6 @@ const Login: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px' }}>
             <div className="glass-panel fade-in" style={{ padding: '40px', width: '100%', maxWidth: '400px' }}>
                 <h2 style={{ textAlign: 'center', marginBottom: '30px', fontSize: '2rem' }}>Welcome Back</h2>
-                {error && <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', padding: '10px', borderRadius: '8px', marginBottom: '20px', color: '#ffcfcf', textAlign: 'center' }}>{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Email Address</label>

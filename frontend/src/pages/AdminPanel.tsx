@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useToast } from '../context/ToastContext';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -30,6 +31,7 @@ const AdminPanel: React.FC = () => {
     const [permissions, setPermissions] = useState<string[]>([]);
     const [error, setError] = useState('');
     const [isPermDropdownOpen, setIsPermDropdownOpen] = useState(false);
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (auth?.isAuthenticated && auth.user?.role === 'ADMIN') {
@@ -66,9 +68,11 @@ const AdminPanel: React.FC = () => {
             });
             setShowModal(false);
             resetForm();
+            showToast('User created successfully', 'success');
             fetchUsers();
         } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to create user');
+            // setError(err.response?.data?.detail || 'Failed to create user');
+            // handled globally or specifically here if needed
         }
     };
 
@@ -84,9 +88,10 @@ const AdminPanel: React.FC = () => {
             });
             setShowModal(false);
             resetForm();
+            showToast('User updated successfully', 'success');
             fetchUsers();
         } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to update user');
+            // setError(err.response?.data?.detail || 'Failed to update user');
         }
     };
 
@@ -94,6 +99,7 @@ const AdminPanel: React.FC = () => {
         if (!window.confirm('Are you sure you want to delete this user?')) return;
         try {
             await api.delete(`/users/${userId}`);
+            showToast('User deleted successfully', 'success');
             fetchUsers();
         } catch (err) {
             console.error('Failed to delete user', err);
