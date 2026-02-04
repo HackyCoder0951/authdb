@@ -12,6 +12,8 @@ interface User {
     created_at: string;
 }
 
+const AVAILABLE_PERMISSIONS = ['read:tasks', 'write:tasks', 'delete:tasks', 'manage:users'];
+
 const AdminPanel: React.FC = () => {
     const auth = useContext(AuthContext);
     const navigate = useNavigate();
@@ -25,8 +27,9 @@ const AdminPanel: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('USER');
-    const [permissions, setPermissions] = useState('');
+    const [permissions, setPermissions] = useState<string[]>([]);
     const [error, setError] = useState('');
+    const [isPermDropdownOpen, setIsPermDropdownOpen] = useState(false);
 
     useEffect(() => {
         if (auth?.isAuthenticated && auth.user?.role === 'ADMIN') {
@@ -54,13 +57,12 @@ const AdminPanel: React.FC = () => {
         e.preventDefault();
         setError('');
         try {
-            const permsArray = permissions.split(',').map(p => p.trim()).filter(p => p);
             await api.post('/users/', {
                 name: name || undefined,
                 email,
                 password,
                 role,
-                permissions: permsArray
+                permissions
             });
             setShowModal(false);
             resetForm();
@@ -75,11 +77,10 @@ const AdminPanel: React.FC = () => {
         if (!editingUser) return;
         setError('');
         try {
-            const permsArray = permissions.split(',').map(p => p.trim()).filter(p => p);
             await api.put(`/users/${editingUser._id}`, {
                 name: name || undefined,
                 role,
-                permissions: permsArray
+                permissions
             });
             setShowModal(false);
             resetForm();
@@ -110,7 +111,7 @@ const AdminPanel: React.FC = () => {
         setName(user.name || '');
         setEmail(user.email);
         setRole(user.role);
-        setPermissions(user.permissions.join(', '));
+        setPermissions(user.permissions || []);
         setPassword(''); // Not updating password here for simplicity
         setShowModal(true);
     };
@@ -120,8 +121,17 @@ const AdminPanel: React.FC = () => {
         setEmail('');
         setPassword('');
         setRole('USER');
-        setPermissions('');
+        setPermissions([]);
         setError('');
+        setIsPermDropdownOpen(false);
+    };
+
+    const togglePermission = (perm: string) => {
+        if (permissions.includes(perm)) {
+            setPermissions(permissions.filter(p => p !== perm));
+        } else {
+            setPermissions([...permissions, perm]);
+        }
     };
 
     if (loading) return <div style={{ textAlign: 'center', marginTop: '50px', color: '#374151' }}>Loading...</div>;
@@ -238,15 +248,29 @@ const AdminPanel: React.FC = () => {
                                     <option value="ADMIN">Admin</option>
                                 </select>
                             </div>
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Permissions (comma separated)</label>
-                                <input
-                                    type="text"
-                                    value={permissions}
-                                    onChange={e => setPermissions(e.target.value)}
-                                    placeholder="read:tasks, write:tasks"
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
-                                />
+                            <div style={{ marginBottom: '20px', position: 'relative' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Permissions</label>
+                                <div
+                                    onClick={() => setIsPermDropdownOpen(!isPermDropdownOpen)}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer', minHeight: '42px', display: 'flex', alignItems: 'center' }}
+                                >
+                                    {permissions.length === 0 ? <span style={{ color: '#9ca3af' }}>Select permissions...</span> : permissions.join(', ')}
+                                </div>
+                                {isPermDropdownOpen && (
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginTop: '4px', zIndex: 10 }}>
+                                        {AVAILABLE_PERMISSIONS.map(perm => (
+                                            <label key={perm} style={{ display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={permissions.includes(perm)}
+                                                    onChange={() => togglePermission(perm)}
+                                                    style={{ marginRight: '10px' }}
+                                                />
+                                                {perm}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                                 <button type="button" onClick={() => setShowModal(false)} style={{ padding: '8px 16px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
