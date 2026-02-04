@@ -6,6 +6,7 @@ interface User {
     sub: string;
     exp: number;
     role: string;
+    permissions: string[];
 }
 
 interface AuthContextType {

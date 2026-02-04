@@ -67,8 +67,15 @@ const Dashboard: React.FC = () => {
     return (
         <div style={{ padding: '20px' }}>
             <h1>Dashboard</h1>
-            <p>Welcome, {auth?.user?.sub}</p>
-            <button onClick={auth?.logout} style={{ marginBottom: '20px' }}>Logout</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <p>Welcome, {auth?.user?.sub}</p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    {auth?.user?.role === 'ADMIN' && (
+                        <button onClick={() => navigate('/admin')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Admin Panel</button>
+                    )}
+                    <button onClick={auth?.logout} style={{ padding: '10px 20px', cursor: 'pointer' }}>Logout</button>
+                </div>
+            </div>
 
             <div style={{ marginBottom: '30px' }}>
                 <h3>Create New Task</h3>
