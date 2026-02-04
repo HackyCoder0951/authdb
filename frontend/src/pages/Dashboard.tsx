@@ -20,13 +20,14 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        if (auth?.loading) return; // Wait for auth to initialize
         if (!auth?.isAuthenticated) {
             navigate('/login');
             return;
         }
         fetchTasks();
         checkApiStatus();
-    }, [auth]);
+    }, [auth, auth?.loading, auth?.isAuthenticated]);
 
     const [apiStatus, setApiStatus] = useState<'online' | 'offline' | 'checking'>('checking');
     const [latency, setLatency] = useState<number | null>(null);

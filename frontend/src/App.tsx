@@ -8,6 +8,7 @@ import { AuthContext } from './context/AuthContext';
 
 function PrivateRoute({ children }: { children: React.ReactElement }) {
   const auth = useContext(AuthContext);
+  if (auth?.loading) return <div>Loading...</div>; // Or return null
   return auth?.isAuthenticated ? children : <Navigate to="/login" />;
 }
 

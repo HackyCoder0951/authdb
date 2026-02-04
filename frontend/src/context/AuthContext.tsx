@@ -17,6 +17,7 @@ interface AuthContextType {
     login: (token: string) => void;
     logout: () => void;
     isAuthenticated: boolean;
+    loading: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,27 +25,32 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (token) {
-            try {
-                const decoded = jwtDecode<User>(token);
-                // Check expiry
-                if (decoded.exp * 1000 < Date.now()) {
-                    console.log('AuthContext: Token expired, logging out');
+        const initAuth = async () => {
+            if (token) {
+                try {
+                    const decoded = jwtDecode<User>(token);
+                    // Check expiry
+                    if (decoded.exp * 1000 < Date.now()) {
+                        console.log('AuthContext: Token expired, logging out');
+                        logout();
+                    } else {
+                        console.log('AuthContext: User authenticated', decoded);
+                        setUser(decoded);
+                    }
+                } catch (error) {
+                    console.error('AuthContext: Token decode failed', error);
                     logout();
-                } else {
-                    console.log('AuthContext: User authenticated', decoded);
-                    setUser(decoded);
                 }
-            } catch (error) {
-                console.error('AuthContext: Token decode failed', error);
-                logout();
+            } else {
+                console.log('AuthContext: No token found');
+                setUser(null);
             }
-        } else {
-            console.log('AuthContext: No token found');
-            setUser(null);
-        }
+            setLoading(false);
+        };
+        initAuth();
     }, [token]);
 
     const login = (newToken: string) => {
@@ -61,7 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user, loading }}>
             {children}
         </AuthContext.Provider>
     );
