@@ -70,23 +70,29 @@ Authorization: Bearer <token>
 
 ## Database Schema
 
-### User Table
-| Field           | Type             |
-|-----------------|------------------|
-| id              | Integer (PK)     |
-| email           | String (Unique)  |
-| hashed_password | String           |
-| role            | USER / ADMIN     |
-| created_at      | Timestamp        |
+### User Schema
+```
+{
+    "id": "Integer (PK)",
+    "name": "String",
+    "email": "String (Unique)",
+    "permission": "String",
+    "role": "USER / ADMIN",
+    "hashed_password": "String",
+    "created_at": "Timestamp"
+}
+```
 
-### Task Table
-| Field      | Type              |
-|------------|-------------------|
-| id         | Integer (PK)      |
-| title      | String            |
-| description| String            |
-| owner_id   | Foreign Key (User)|
-| created_at | Timestamp         |
+### Task Schema
+```
+{
+    "id": "Integer (PK)",
+    "title": "String",
+    "description": "String",
+    "owner_id": "Foreign Key (User)",
+    "created_at": "Timestamp"
+}
+```
 
 ---
 
@@ -106,10 +112,20 @@ Authorization: Bearer <token>
 ### Task APIs
 | Method | Endpoint             | Access |
 |--------|----------------------|--------|
-| POST   | /api/v1/tasks        | User   |
-| GET    | /api/v1/tasks        | User   |
-| PUT    | /api/v1/tasks/{id}   | Owner  |
+| GET   | /api/v1/tasks        | User   |
+| POST    | /api/v1/tasks        | User   |
+| PUT   | /api/v1/tasks/{id}   | Owner  |
 | DELETE | /api/v1/tasks/{id}   | Admin  |
+| GET    | /api/v1/tasks        | User   |
+
+### User APIs
+| Method | Endpoint             | Access |
+|--------|----------------------|--------|
+| GET   | /api/v1/users        | User   |
+| POST    | /api/v1/users        | User   |
+| PUT   | /api/v1/users/{id}   | Owner  |
+| DELETE | /api/v1/users/{id}   | Admin  |
+| GET    | /api/v1/users        | Admin   |
 
 ---
 

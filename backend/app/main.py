@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes.api.v1 import auth, tasks, users
+from app.routes.api.v1 import auth, tasks, users, health
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.mongodb import mongodb
@@ -8,7 +8,7 @@ from app.utils.logger import setup_logging
 # Configure Logging using custom utility
 logger = setup_logging()
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=settings.PROJECT_NAME, redirect_slashes=False)
 
 # CORS
 app.add_middleware(
@@ -32,16 +32,7 @@ async def shutdown_db_client():
     await mongodb.close_database_connection()
     logger.info("Database connection closed.")
 
-# Routes
-@app.get("/health", tags=["Health"])
-async def health_check():
-    is_connected = await mongodb.check_connection()
-    if is_connected:
-        return {"status": "ok", "database": "connected"}
-    return {"status": "error", "database": "disconnected"}
-
-app = FastAPI()
-
+app.include_router(health.router, prefix="/api/v1", tags=["Health"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["Tasks"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])

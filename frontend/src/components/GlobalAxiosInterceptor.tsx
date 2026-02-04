@@ -63,7 +63,7 @@ export const GlobalAxiosInterceptor: React.FC = () => {
 
                 // 5. Conflicts (409) - e.g. Duplicate Email
                 else if (status === 409) {
-                    showToast(backendMessage || 'Conflict. Resource already exists.', 'error');
+                    showToast(backendMessage || 'Resource already exists.', 'error');
                 }
 
                 // 6. Bad Request (400) - e.g. Validation logic that isn't Pydantic default
