@@ -3,7 +3,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.db.mongodb import get_database
 from app.schemas.user import UserCreate, UserResponse, UserInDB
 from app.core.security import get_password_hash, verify_password, create_access_token
-from bson import ObjectId
 from datetime import datetime, timedelta
 import logging
 
