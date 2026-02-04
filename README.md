@@ -7,25 +7,6 @@ The system allows users to register, log in, and perform CRUD operations on a se
 
 ---
 
-## Tech Stack
-
-### Backend
-- Language: Python
-- Framework: FastAPI
-- Authentication: JWT (JSON Web Tokens)
-- Password Hashing: bcrypt (passlib)
-- ORM: SQLAlchemy
-- Database: PostgreSQL / SQLite (for demo)
-- Validation: Pydantic
-- API Documentation: Swagger (OpenAPI)
-
-### Frontend
-- Framework: React.js (Vite) / Vanilla JavaScript
-- HTTP Client: Axios / Fetch API
-- Auth Storage: LocalStorage (JWT)
-
----
-
 ## Project Structure
 
 ```
@@ -47,11 +28,23 @@ backend/
 │   │   ├── users.py
 │   │   └── tasks.py
 │   ├── db/
-│   │   ├── session.py
-│   │   └── base.py
-│   └── utils/
-│       └── role_checker.py
+│   │   └── mongodb.py
+│   ├── utils/
+│   │   ├── logger.py
+│   │   └── role_checker.py
+│   └── Scalability_Guide.md
 ├── requirements.txt
+└── README.md
+frontend/
+├── src/
+│   ├── api/
+│   ├── components/
+│   ├── context/
+│   ├── pages/
+│   ├── App.tsx
+│   └── main.tsx
+├── package.json
+├── vite.config.ts
 └── README.md
 ```
 
@@ -98,6 +91,11 @@ Authorization: Bearer <token>
 ---
 
 ## API Endpoints
+
+### Health Check APIs
+| Method | Endpoint               | Description      |
+|--------|------------------------|------------------|
+| GET    | /health         | Health check     |
 
 ### Auth APIs
 | Method | Endpoint               | Description      |
@@ -152,6 +150,7 @@ cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+# Ensure MongoDB is running locally or set MONGO_URI in .env
 uvicorn app.main:app --reload
 ```
 
@@ -174,9 +173,11 @@ npm run dev
 ---
 
 ## Scalability & Future Improvements
-- Microservices-based architecture
-- Redis caching for frequently accessed data
-- Load balancing using NGINX
+- **Scalability Guide**: A detailed guide (`app/Scalability_Guide.md`) is included to assist with understanding microservices, caching (Redis), and load balancing.
+- Microservices-based architecture (Proposed)
+- Redis caching for frequently accessed data (Proposed)
+- Load balancing using NGINX (Proposed)
+- **Advanced Logging**: Custom logging utility for better observability.
 - Docker containerization
 - API rate limiting
 - CI/CD pipeline integration
