@@ -164,9 +164,7 @@ const AdminPanel: React.FC = () => {
                     API Admin Panel
                 </div>
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                        {auth?.user?.email}
-                    </span>
+                    {auth?.user?.name}
                     <button onClick={logout} style={{ background: 'rgba(255,50,50,0.2)', border: '1px solid rgba(255,50,50,0.3)', color: '#ffcbcb', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer' }}>
                         Sign Out
                     </button>

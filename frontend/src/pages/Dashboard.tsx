@@ -80,9 +80,7 @@ const Dashboard: React.FC = () => {
                     Task Dashboard
                 </div>
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                        {auth?.user?.name || auth?.user?.sub}
-                    </span>
+                    {auth?.user?.name}
                     {auth?.user?.role === 'ADMIN' && (
                         <button onClick={() => navigate('/admin')} className="glass-button" style={{ padding: '5px 12px', fontSize: '0.8rem', width: 'auto' }}>
                             Admin Panel

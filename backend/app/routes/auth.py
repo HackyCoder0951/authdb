@@ -49,6 +49,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(g
     access_token = create_access_token(
         subject=str(user["_id"]), 
         expires_delta=access_token_expires,
-        claims={"role": user["role"], "name": user.get("name")}
+        claims={"role": user["role"], "name": user.get("name"), "email": user["email"]}
     )
     return {"access_token": access_token, "token_type": "bearer"}
