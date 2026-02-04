@@ -129,11 +129,20 @@ Authorization: Bearer <token>
 
 ---
 
+## Docker Support
+
+The project includes Dockerfiles for both backend and frontend.
+Run both services using:
+
+**``` docker-compose up --build ```**
+
+---
+
 ## API Documentation
 Swagger UI is available at:
 
 ```bash
-http://localhost:8000/docs
+http://localhost:8001/docs
 ```
 
 A Postman collection is also provided for API testing.
