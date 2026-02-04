@@ -170,6 +170,7 @@ npm run dev
 - Role-based access control
 - Input validation
 - ORM-based database access
+- Non-TLS MongoDB connections for simplified deployment
 
 ---
 
