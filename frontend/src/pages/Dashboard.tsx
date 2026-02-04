@@ -26,10 +26,8 @@ const Dashboard: React.FC = () => {
     }, [auth]);
 
     const fetchTasks = async () => {
-        console.log('Dashboard: Fetching tasks...');
         try {
             const response = await api.get('/tasks/');
-            console.log('Dashboard: Tasks fetched', response.data);
             setTasks(response.data);
         } catch (err) {
             console.error('Dashboard: Fetch failed', err);
@@ -38,13 +36,11 @@ const Dashboard: React.FC = () => {
 
     const handleCreateTask = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Dashboard: Creating task', newTaskTitle);
         try {
             await api.post('/tasks/', {
                 title: newTaskTitle,
                 description: newTaskDesc
             });
-            console.log('Dashboard: Task created');
             setNewTaskTitle('');
             setNewTaskDesc('');
             fetchTasks();
@@ -54,84 +50,97 @@ const Dashboard: React.FC = () => {
     };
 
     const handleDeleteTask = async (taskId: string) => {
-        console.log('Dashboard: Deleting task', taskId);
         try {
             await api.delete(`/tasks/${taskId}`);
-            console.log('Dashboard: Task deleted');
             fetchTasks();
         } catch (err) {
             console.error('Dashboard: Delete failed', err);
         }
     };
 
-    const [showName, setShowName] = useState(true);
+    const logout = () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    };
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1 style={{ margin: 0, color: '#333' }}>Task Dashboard</h1>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <div style={{ marginRight: '15px' }}>
-                        <span style={{ marginRight: '10px', color: '#666' }}>
-                            Welcome, <strong>{showName ? (auth?.user?.name || auth?.user?.sub) : auth?.user?.sub}</strong>
-                        </span>
-                        <label style={{ fontSize: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                            <input
-                                type="checkbox"
-                                checked={showName}
-                                onChange={(e) => setShowName(e.target.checked)}
-                                style={{ marginRight: '5px' }}
-                            />
-                            Show Name
-                        </label>
+        <div className="container" style={{ paddingTop: '20px' }}>
+            {/* Navigation Header */}
+            <div className="glass-panel" style={{ padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: '5px', borderRadius: '8px' }}>
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
                     </div>
+                    Task Dashboard
+                </div>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                        {auth?.user?.name || auth?.user?.sub}
+                    </span>
                     {auth?.user?.role === 'ADMIN' && (
-                        <button onClick={() => navigate('/admin')} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Admin Panel</button>
+                        <button onClick={() => navigate('/admin')} className="glass-button" style={{ padding: '5px 12px', fontSize: '0.8rem', width: 'auto' }}>
+                            Admin Panel
+                        </button>
                     )}
-                    <button onClick={auth?.logout} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
+                    <button onClick={logout} style={{ background: 'rgba(255,50,50,0.2)', border: '1px solid rgba(255,50,50,0.3)', color: '#ffcbcb', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer' }}>
+                        Sign Out
+                    </button>
                 </div>
             </div>
 
-            <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#374151' }}>Create New Task</h3>
-                <form onSubmit={handleCreateTask} style={{ display: 'flex', gap: '10px' }}>
-                    <input
-                        type="text"
-                        placeholder="Task Title"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        required
-                        style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Description (optional)"
-                        value={newTaskDesc}
-                        onChange={(e) => setNewTaskDesc(e.target.value)}
-                        style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
-                    />
-                    <button type="submit" style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
-                </form>
-            </div>
+            <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div className="glass-panel" style={{ padding: '25px', marginBottom: '40px' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.3rem' }}>Create New Task</h3>
+                    <form onSubmit={handleCreateTask} style={{ display: 'grid', gap: '15px', gridTemplateColumns: '1fr 2fr auto' }}>
+                        <input
+                            className="glass-input"
+                            type="text"
+                            placeholder="Task Title"
+                            value={newTaskTitle}
+                            onChange={(e) => setNewTaskTitle(e.target.value)}
+                            required
+                        />
+                        <input
+                            className="glass-input"
+                            type="text"
+                            placeholder="Description (optional)"
+                            value={newTaskDesc}
+                            onChange={(e) => setNewTaskDesc(e.target.value)}
+                        />
+                        <button type="submit" className="glass-button" style={{ width: 'auto', whiteSpace: 'nowrap' }}>
+                            Add Task
+                        </button>
+                    </form>
+                </div>
 
-            <h3 style={{ color: '#374151', paddingBottom: '10px', borderBottom: '2px solid #e5e7eb' }}>My Tasks</h3>
-            {tasks.length === 0 ? (
-                <p style={{ color: '#6b7280', textAlign: 'center', marginTop: '20px' }}>No tasks found. Create one above!</p>
-            ) : (
-                <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-                    {tasks.map(task => (
-                        <li key={task._id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '15px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div>
-                                <strong style={{ display: 'block', fontSize: '18px', marginBottom: '5px', color: '#111827' }}>{task.title}</strong>
-                                {task.description && <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', lineHeight: '1.4' }}>{task.description}</p>}
+                <div style={{ marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '10px' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.3rem' }}>My Tasks</h3>
+                </div>
+
+                {tasks.length === 0 ? (
+                    <div className="glass-panel" style={{ textAlign: 'center', opacity: 0.7, padding: '40px' }}>
+                        <p>No tasks found. Create one above!</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2" style={{ gap: '20px' }}>
+                        {tasks.map(task => (
+                            <div key={task._id} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
+                                <div style={{ flex: 1 }}>
+                                    <strong style={{ display: 'block', fontSize: '1.1rem', marginBottom: '5px' }}>{task.title}</strong>
+                                    {task.description && <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem', lineHeight: 1.5 }}>{task.description}</p>}
+                                </div>
+                                {(auth?.user?.role === 'ADMIN' || auth?.user?.sub === task.owner_id) && (
+                                    <div style={{ marginTop: '15px', textAlign: 'right' }}>
+                                        <button onClick={() => handleDeleteTask(task._id)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontSize: '0.9rem' }}>Delete</button>
+                                    </div>
+                                )}
                             </div>
-                            {(auth?.user?.role === 'ADMIN' || auth?.user?.sub === task.owner_id) && (
-                                <button onClick={() => handleDeleteTask(task._id)} style={{ alignSelf: 'flex-end', marginTop: '15px', background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '0' }}>Delete Task</button>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

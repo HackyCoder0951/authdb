@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 interface User {
     sub: string;
     name?: string;
+    email?: string;
     exp: number;
     role: string;
     permissions: string[];

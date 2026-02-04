@@ -134,55 +134,116 @@ const AdminPanel: React.FC = () => {
         }
     };
 
-    if (loading) return <div style={{ textAlign: 'center', marginTop: '50px', color: '#374151' }}>Loading...</div>;
+    // Calculate stats
+    const totalUsers = users.length;
+    const adminCount = users.filter(u => u.role === 'ADMIN').length;
+
+    const logout = () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    };
+
+    if (loading) return <div style={{ textAlign: 'center', marginTop: '50px', color: 'white' }}>Loading...</div>;
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
-                <h1 style={{ margin: 0, color: '#111827' }}>Admin Panel</h1>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => navigate('/dashboard')} style={{ padding: '8px 16px', background: '#374151', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Dashboard</button>
-                    <button onClick={openCreateModal} style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Add User</button>
+        <div className="container" style={{ paddingTop: '20px' }}>
+            {/* Navigation Header */}
+            <div className="glass-panel" style={{ padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.2)', padding: '5px', borderRadius: '8px' }}>
+                        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                    API Admin Panel
+                </div>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                        {auth?.user?.email}
+                    </span>
+                    <button onClick={logout} style={{ background: 'rgba(255,50,50,0.2)', border: '1px solid rgba(255,50,50,0.3)', color: '#ffcbcb', padding: '5px 12px', borderRadius: '6px', cursor: 'pointer' }}>
+                        Sign Out
+                    </button>
                 </div>
             </div>
 
-            {/* Responsive Table / Card Grid */}
-            <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-                    <thead style={{ background: '#f9fafb' }}>
-                        <tr>
-                            <th style={{ padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', fontWeight: 600 }}>Name</th>
-                            <th style={{ padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', fontWeight: 600 }}>Email</th>
-                            <th style={{ padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', fontWeight: 600 }}>Role</th>
-                            <th style={{ padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', fontWeight: 600 }}>Permissions</th>
-                            <th style={{ padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', fontWeight: 600 }}>Created</th>
-                            <th style={{ padding: '15px', borderBottom: '1px solid #e5e7eb', color: '#6b7280', fontWeight: 600 }}>Actions</th>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2" style={{ marginBottom: '30px' }}>
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Total Users</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{totalUsers}</div>
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '10px', borderRadius: '10px' }}>
+                        <svg width="30" height="30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <div style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '5px' }}>Admins</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{adminCount}</div>
+                    </div>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '10px', borderRadius: '10px' }}>
+                        <svg width="30" height="30" fill="none" stroke="#6ee7b7" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '1.5rem', margin: 0 }}>User Management</h2>
+                <button onClick={openCreateModal} className="glass-button" style={{ width: 'auto' }}>
+                    + Add User
+                </button>
+            </div>
+
+            {/* Table */}
+            <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '0.9rem', opacity: 0.8 }}>Name</th>
+                            <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '0.9rem', opacity: 0.8 }}>Email</th>
+                            <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '0.9rem', opacity: 0.8 }}>Role</th>
+                            <th style={{ padding: '15px 20px', textAlign: 'left', fontSize: '0.9rem', opacity: 0.8 }}>Permissions</th>
+                            <th style={{ padding: '15px 20px', textAlign: 'right', fontSize: '0.9rem', opacity: 0.8 }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {users.map(user => (
-                            <tr key={user._id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                <td style={{ padding: '15px', color: '#111827' }}>
-                                    {user.name || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No Name</span>}
+                            <tr key={user._id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                <td style={{ padding: '15px 20px' }}>
+                                    <div style={{ fontWeight: 500 }}>{user.name || <span style={{ opacity: 0.5 }}>No Name</span>}</div>
                                 </td>
-                                <td style={{ padding: '15px', color: '#374151' }}>{user.email}</td>
-                                <td style={{ padding: '15px' }}>
+                                <td style={{ padding: '15px 20px' }}>{user.email}</td>
+                                <td style={{ padding: '15px 20px' }}>
                                     <span style={{
                                         padding: '4px 10px',
-                                        borderRadius: '9999px',
-                                        background: user.role === 'ADMIN' ? '#d1fae5' : '#dbeafe',
-                                        color: user.role === 'ADMIN' ? '#059669' : '#1d4ed8',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 700
+                                        borderRadius: '20px',
+                                        fontSize: '0.8rem',
+                                        background: user.role === 'ADMIN' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                                        color: user.role === 'ADMIN' ? '#6ee7b7' : 'white',
+                                        border: '1px solid rgba(255,255,255,0.1)'
                                     }}>
                                         {user.role}
                                     </span>
                                 </td>
-                                <td style={{ padding: '15px', color: '#6b7280', fontSize: '0.875rem' }}>{user.permissions.join(', ') || '-'}</td>
-                                <td style={{ padding: '15px', color: '#6b7280' }}>{new Date(user.created_at).toLocaleDateString()}</td>
-                                <td style={{ padding: '15px' }}>
-                                    <button onClick={() => openEditModal(user)} style={{ marginRight: '10px', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontWeight: 500 }}>Edit</button>
-                                    <button onClick={() => handleDeleteUser(user._id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 500 }}>Delete</button>
+                                <td style={{ padding: '15px 20px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                        {user.permissions.length > 0 ? user.permissions.map(perm => (
+                                            <span key={perm} style={{ fontSize: '0.75rem', padding: '2px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', opacity: 0.8 }}>
+                                                {perm}
+                                            </span>
+                                        )) : <span style={{ opacity: 0.4 }}>-</span>}
+                                    </div>
+                                </td>
+                                <td style={{ padding: '15px 20px', textAlign: 'right' }}>
+                                    <button onClick={() => openEditModal(user)} style={{ background: 'none', border: 'none', color: '#93c5fd', cursor: 'pointer', marginRight: '10px' }}>Edit</button>
+                                    <button onClick={() => handleDeleteUser(user._id)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>Delete</button>
                                 </td>
                             </tr>
                         ))}
@@ -190,91 +251,130 @@ const AdminPanel: React.FC = () => {
                 </table>
             </div>
 
-            {/* Mobile View Placeholder for very small screens if table overflows */}
-            <div style={{ marginTop: '10px', fontSize: '0.875rem', color: '#6b7280', textAlign: 'center', display: 'none' }}>
-                Scroll horizontally to view table on small screens
-            </div>
-
             {showModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '500px', padding: '30px', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '20px', color: '#111827' }}>{editingUser ? 'Edit User' : 'Add New User'}</h2>
-                        {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.875rem' }}>{error}</div>}
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '30px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
+                            <h2 style={{ margin: 0 }}>{editingUser ? 'Edit User' : 'Add New User'}</h2>
+                            <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer', opacity: 0.7 }}>×</button>
+                        </div>
+
+                        {error && <div style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>{error}</div>}
+
                         <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser}>
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Full Name (Optional)</label>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', opacity: 0.9 }}>Full Name (Optional)</label>
                                 <input
+                                    className="glass-input"
                                     type="text"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                     placeholder="John Doe"
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
                                 />
                             </div>
                             {!editingUser && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Email</label>
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', opacity: 0.9 }}>Email</label>
                                     <input
+                                        className="glass-input"
                                         type="email"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                         required
                                         placeholder="you@example.com"
-                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
                                     />
                                 </div>
                             )}
                             {!editingUser && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Password</label>
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', opacity: 0.9 }}>Password</label>
                                     <input
+                                        className="glass-input"
                                         type="password"
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
                                         required
                                         placeholder="••••••••"
-                                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
                                     />
                                 </div>
                             )}
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Role</label>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', opacity: 0.9 }}>Role</label>
                                 <select
+                                    className="glass-input"
                                     value={role}
                                     onChange={e => setRole(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white' }}
                                 >
-                                    <option value="USER">User</option>
-                                    <option value="ADMIN">Admin</option>
+                                    <option style={{ color: 'black' }} value="USER">User</option>
+                                    <option style={{ color: 'black' }} value="ADMIN">Admin</option>
                                 </select>
                             </div>
-                            <div style={{ marginBottom: '20px', position: 'relative' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontSize: '0.875rem', fontWeight: 500, color: '#374151' }}>Permissions</label>
+                            <div style={{ marginBottom: '30px', position: 'relative' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', opacity: 0.9 }}>Permissions</label>
                                 <div
+                                    className="glass-input"
                                     onClick={() => setIsPermDropdownOpen(!isPermDropdownOpen)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer', minHeight: '42px', display: 'flex', alignItems: 'center' }}
+                                    style={{ cursor: 'pointer', minHeight: '44px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}
                                 >
-                                    {permissions.length === 0 ? <span style={{ color: '#9ca3af' }}>Select permissions...</span> : permissions.join(', ')}
+                                    {permissions.length === 0 ? (
+                                        <span style={{ opacity: 0.6 }}>Select permissions...</span>
+                                    ) : (
+                                        permissions.map(perm => (
+                                            <span key={perm} style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>
+                                                {perm}
+                                                <span
+                                                    style={{ marginLeft: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        togglePermission(perm);
+                                                    }}
+                                                >
+                                                    ×
+                                                </span>
+                                            </span>
+                                        ))
+                                    )}
                                 </div>
                                 {isPermDropdownOpen && (
-                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginTop: '4px', zIndex: 10 }}>
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'rgba(30, 41, 59, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', marginTop: '5px', zIndex: 10, overflow: 'hidden', backdropFilter: 'blur(10px)' }}>
                                         {AVAILABLE_PERMISSIONS.map(perm => (
-                                            <label key={perm} style={{ display: 'flex', alignItems: 'center', padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={permissions.includes(perm)}
-                                                    onChange={() => togglePermission(perm)}
-                                                    style={{ marginRight: '10px' }}
-                                                />
+                                            <div
+                                                key={perm}
+                                                onClick={() => togglePermission(perm)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    padding: '12px 15px',
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                    background: permissions.includes(perm) ? 'rgba(255,255,255,0.1)' : 'transparent'
+                                                }}
+                                            >
+                                                <div style={{
+                                                    width: '18px',
+                                                    height: '18px',
+                                                    border: '1px solid rgba(255,255,255,0.3)',
+                                                    borderRadius: '4px',
+                                                    marginRight: '10px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: permissions.includes(perm) ? 'var(--primary-color)' : 'transparent',
+                                                    borderColor: permissions.includes(perm) ? 'transparent' : 'rgba(255,255,255,0.3)'
+                                                }}>
+                                                    {permissions.includes(perm) && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M20 6L9 17l-5-5" /></svg>}
+                                                </div>
                                                 {perm}
-                                            </label>
+                                            </div>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                <button type="button" onClick={() => setShowModal(false)} style={{ padding: '8px 16px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
-                                <button type="submit" style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{editingUser ? 'Update' : 'Create'}</button>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <button type="button" onClick={() => setShowModal(false)} className="glass-button" style={{ background: 'rgba(255,255,255,0.1)' }}>Cancel</button>
+                                <button type="submit" className="glass-button">
+                                    {editingUser ? 'Update User' : 'Create User'}
+                                </button>
                             </div>
                         </form>
                     </div>
