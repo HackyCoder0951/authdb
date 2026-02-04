@@ -10,6 +10,7 @@ class UserRole(str, Enum):
     ADMIN = "ADMIN"
 
 class UserBase(BaseModel):
+    name: Optional[str] = None
     email: EmailStr
     permissions: list[str] = []
 
@@ -18,6 +19,7 @@ class UserCreate(UserBase):
     role: UserRole = UserRole.USER
 
 class UserUpdate(BaseModel):
+    name: Optional[str] = None
     role: Optional[UserRole] = None
     permissions: Optional[list[str]] = None
 

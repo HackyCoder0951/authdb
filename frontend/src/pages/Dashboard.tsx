@@ -64,53 +64,74 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    const [showName, setShowName] = useState(true);
+
     return (
-        <div style={{ padding: '20px' }}>
-            <h1>Dashboard</h1>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <p>Welcome, {auth?.user?.sub}</p>
-                <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <h1 style={{ margin: 0, color: '#333' }}>Task Dashboard</h1>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <div style={{ marginRight: '15px' }}>
+                        <span style={{ marginRight: '10px', color: '#666' }}>
+                            Welcome, <strong>{showName ? (auth?.user?.name || auth?.user?.sub) : auth?.user?.sub}</strong>
+                        </span>
+                        <label style={{ fontSize: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                                type="checkbox"
+                                checked={showName}
+                                onChange={(e) => setShowName(e.target.checked)}
+                                style={{ marginRight: '5px' }}
+                            />
+                            Show Name
+                        </label>
+                    </div>
                     {auth?.user?.role === 'ADMIN' && (
-                        <button onClick={() => navigate('/admin')} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Admin Panel</button>
+                        <button onClick={() => navigate('/admin')} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Admin Panel</button>
                     )}
-                    <button onClick={auth?.logout} style={{ padding: '10px 20px', cursor: 'pointer' }}>Logout</button>
+                    <button onClick={auth?.logout} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}>Logout</button>
                 </div>
             </div>
 
-            <div style={{ marginBottom: '30px' }}>
-                <h3>Create New Task</h3>
-                <form onSubmit={handleCreateTask}>
+            <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#374151' }}>Create New Task</h3>
+                <form onSubmit={handleCreateTask} style={{ display: 'flex', gap: '10px' }}>
                     <input
                         type="text"
-                        placeholder="Title"
+                        placeholder="Task Title"
                         value={newTaskTitle}
                         onChange={(e) => setNewTaskTitle(e.target.value)}
                         required
-                        style={{ marginRight: '10px' }}
+                        style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
                     />
                     <input
                         type="text"
-                        placeholder="Description"
+                        placeholder="Description (optional)"
                         value={newTaskDesc}
                         onChange={(e) => setNewTaskDesc(e.target.value)}
-                        style={{ marginRight: '10px' }}
+                        style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }}
                     />
-                    <button type="submit">Add Task</button>
+                    <button type="submit" style={{ padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Add</button>
                 </form>
             </div>
 
-            <h3>My Tasks</h3>
-            <ul>
-                {tasks.map(task => (
-                    <li key={task._id} style={{ marginBottom: '10px', border: '1px solid #ccc', padding: '10px' }}>
-                        <strong>{task.title}</strong>
-                        {task.description && <p>{task.description}</p>}
-                        {(auth?.user?.role === 'ADMIN' || auth?.user?.sub === task.owner_id) && (
-                            <button onClick={() => handleDeleteTask(task._id)} style={{ backgroundColor: 'red', color: 'white', marginTop: '5px' }}>Delete</button>
-                        )}
-                    </li>
-                ))}
-            </ul>
+            <h3 style={{ color: '#374151', paddingBottom: '10px', borderBottom: '2px solid #e5e7eb' }}>My Tasks</h3>
+            {tasks.length === 0 ? (
+                <p style={{ color: '#6b7280', textAlign: 'center', marginTop: '20px' }}>No tasks found. Create one above!</p>
+            ) : (
+                <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+                    {tasks.map(task => (
+                        <li key={task._id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '15px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div>
+                                <strong style={{ display: 'block', fontSize: '18px', marginBottom: '5px', color: '#111827' }}>{task.title}</strong>
+                                {task.description && <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', lineHeight: '1.4' }}>{task.description}</p>}
+                            </div>
+                            {(auth?.user?.role === 'ADMIN' || auth?.user?.sub === task.owner_id) && (
+                                <button onClick={() => handleDeleteTask(task._id)} style={{ alignSelf: 'flex-end', marginTop: '15px', background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '0' }}>Delete Task</button>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };

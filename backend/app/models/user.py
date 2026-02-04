@@ -11,6 +11,7 @@ class UserRole(str, Enum):
 
 class UserModel(BaseModel):
     id: PyObjectId = Field(alias="_id")
+    name: Optional[str] = None
     email: EmailStr
     hashed_password: str
     role: UserRole
