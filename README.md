@@ -30,11 +30,15 @@ backend/
 │   ├── db/
 │   │   └── mongodb.py
 │   ├── utils/
-│   │   ├── logger.py
-│   │   └── role_checker.py
+│   │   └── logger.py
 │   └── Scalability_Guide.md
+├── Dockerfile
 ├── requirements.txt
 └── README.md
+docs/
+├── Back-End.md
+├── Front-End.md
+└── DB_Schema.md
 frontend/
 ├── src/
 │   ├── api/
@@ -45,7 +49,12 @@ frontend/
 │   └── main.tsx
 ├── package.json
 ├── vite.config.ts
+├── Dockerfile
 └── README.md
+.github/
+└── workflows/
+    └── ci.yml
+docker-compose.yml
 ```
 
 ---
@@ -101,7 +110,7 @@ Authorization: Bearer <token>
 ### Health Check APIs
 | Method | Endpoint               | Description      |
 |--------|------------------------|------------------|
-| GET    | /health         | Health check     |
+| GET    | /api/v1/health         | Health check     |
 
 ### Auth APIs
 | Method | Endpoint               | Description      |
@@ -170,13 +179,14 @@ A Postman collection is also provided for API testing.
 
 ### Backend Setup
 ```bash
-git clone <repo-url>
+git clone https://github.com/HackyCoder0951/authdb.git
+python -m venv .venv
 cd backend
-python -m venv venv
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 # Ensure MongoDB is running locally or set MONGO_URI in .env
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8001
+
 ```
 
 ### Frontend Setup
@@ -205,7 +215,17 @@ npm run dev
 - **Advanced Logging**: Custom logging utility for better observability.
 - Docker containerization
 - API rate limiting
-- CI/CD pipeline integration
+## Detailed Documentation
+For deep dives into specific areas, please refer to the `docs/` directory:
+- **[Backend Architecture](docs/Back-End.md)**: Logic flow, Auth, and Task management.
+- **[Frontend Architecture](docs/Front-End.md)**: Component structure and State management.
+- **[Database Schema](docs/DB_Schema.md)**: ERD diagrams and Collection details.
+
+## CI/CD Pipeline
+Automated testing and build pipelines are implemented using **GitHub Actions**.
+- **Config**: `.github/workflows/ci.yml`
+- **Backend**: Runs unit tests and verifies API health.
+- **Frontend**: Installs dependencies and checks build status.
 
 ---
 
@@ -219,8 +239,4 @@ npm run dev
 
 ---
 
-## Author
-Backend Developer Intern Assignment
-
-Built using Python & FastAPI
-
+# *Built using Python & FastAPI*
