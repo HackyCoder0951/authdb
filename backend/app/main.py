@@ -1,16 +1,12 @@
-import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.mongodb import mongodb
 from app.routes import auth, tasks, users
+from app.utils.logger import setup_logging
 
-# Configure Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Configure Logging using custom utility
+logger = setup_logging()
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
