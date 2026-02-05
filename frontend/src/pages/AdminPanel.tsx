@@ -50,7 +50,7 @@ const AdminPanel: React.FC = () => {
     const checkApiStatus = async () => {
         setApiStatus('checking');
         const start = Date.now();
-        const url = 'http://localhost:8001/api/v1/health';
+        const url = 'https://authdb-832j.onrender.com/api/v1/health';
         try {
             await api.get(url); // Relative to /api/v1, so ../health hits /health
             // Actually, axios baseURL is /api/v1. Health is at root /health usually or /api/v1/health? 
