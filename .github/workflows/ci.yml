@@ -32,8 +32,8 @@ jobs:
 
       - name: Start Backend
         env:
-          MONGO_URI: mongodb://localhost:27017
-          SECRET_KEY: test-secret
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           cd backend
           uvicorn app.main:app --host 0.0.0.0 --port 8000 &
