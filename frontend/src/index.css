@@ -1,7 +1,7 @@
 :root {
   --primary-color: #4f46e5;
   --secondary-color: #818cf8;
-  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-gradient: linear-gradient(135deg, #202f74 0%, #02074b 100%);
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   --text-color: #ffffff;
