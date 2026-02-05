@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install backend dependencies
         run: |
@@ -41,7 +41,9 @@ jobs:
 
       - name: Verify Backend APIs
         run: |
-          python backend/app/routes/api/v1/health.py
+          cd backend
+          export PYTHONPATH=$(pwd)
+          python app/routes/api/v2/verify_db.py
 
   frontend-build:
     runs-on: ubuntu-latest
