@@ -10,6 +10,10 @@ jobs:
   backend-test:
     runs-on: ubuntu-latest
 
+    env:
+      MONGODB_URL: ${{ secrets.MONGODB_URL }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
     services:
       mongo:
         image: mongo:6
@@ -30,20 +34,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Start Backend
-        env:
-          MONGODB_URL: ${{ secrets.MONGODB_URL }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-        run: |
-          cd backend
-          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          sleep 8
-
       - name: Verify Backend APIs
         run: |
           cd backend
           export PYTHONPATH=$(pwd)
           python app/routes/api/v2/verify_db.py
+
+      - name: Start Backend
+        run: |
+          cd backend
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 8
 
   frontend-build:
     runs-on: ubuntu-latest
