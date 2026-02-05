@@ -151,7 +151,7 @@ Run both services using:
 Swagger UI is available at:
 
 ```bash
-http://localhost:8001/docs
+https://authdb-832j.onrender.com/docs
 ```
 
 A Postman collection is also provided for API testing.
