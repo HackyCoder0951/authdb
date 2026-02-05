@@ -1,5 +1,5 @@
 # Scalable REST API with Authentication & Role-Based Access
-
+### *Built using Python & FastAPI*
 ## Project Overview
 This project is a scalable backend system built using Python (FastAPI) with JWT authentication and role-based access control, along with a basic frontend UI to interact with the APIs.
 
@@ -238,5 +238,3 @@ Automated testing and build pipelines are implemented using **GitHub Actions**.
 - API documentation
 
 ---
-
-# *Built using Python & FastAPI*
