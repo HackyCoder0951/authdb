@@ -7,6 +7,7 @@ export default defineConfig({
     host: 'localhost',
     port: 5173,
     strictPort: true,
+    allowedHosts: ['authdb-1-1vsu.onrender.com', 'authdb-832j.onrender.com', 'localhost', '0.0.0.0'],
     open: true
   },
   plugins: [react()],
