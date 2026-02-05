@@ -220,6 +220,7 @@ For deep dives into specific areas, please refer to the `docs/` directory:
 - **[Backend Architecture](docs/Back-End.md)**: Logic flow, Auth, and Task management.
 - **[Frontend Architecture](docs/Front-End.md)**: Component structure and State management.
 - **[Database Schema](docs/DB_Schema.md)**: ERD diagrams and Collection details.
+- **[Scalability Guide](docs/Scalability_Guide.md)**: Scalability and Future Improvements.
 
 ## CI/CD Pipeline
 Automated testing and build pipelines are implemented using **GitHub Actions**.
