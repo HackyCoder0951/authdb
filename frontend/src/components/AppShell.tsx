@@ -14,7 +14,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <Link to="/dashboard" className="brand">
+        <Link to="/admin" className="brand">
           <span className="brand-mark">A</span>
           <span>AuthDB</span>
         </Link>

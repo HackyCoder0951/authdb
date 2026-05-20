@@ -25,8 +25,8 @@ function ProtectedRoute({ children, adminOnly = false }: { children: ReactNode; 
 }
 
 export default function App() {
-  const { isAuthenticated, loading, user } = useAuth();
-  const defaultRoute = !loading && isAuthenticated && user?.role === 'ADMIN' ? '/admin' : '/dashboard';
+  const { isAuthenticated, loading } = useAuth();
+  const defaultRoute = '/dashboard';
 
   return (
     <Routes>
@@ -36,7 +36,7 @@ export default function App() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            {user?.role === 'ADMIN' ? <Navigate to="/admin" replace /> : <Dashboard />}
+            <Dashboard />
           </ProtectedRoute>
         }
       />
