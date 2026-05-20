@@ -11,7 +11,8 @@ dist/
 .idea/
 .vscode/
 *.log
-
+.agents/
+.codex/
 
 .github/prompts/
 

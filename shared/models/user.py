@@ -14,7 +14,7 @@ class UserRole(str, Enum):
 class UserBase(BaseModel):
 	name: Optional[str] = None
 	email: EmailStr
-	permissions: list[str] = []
+	permissions: list[str] = Field(default_factory=list)
 
 
 class UserCreate(UserBase):
