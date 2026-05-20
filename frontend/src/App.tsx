@@ -25,17 +25,18 @@ function ProtectedRoute({ children, adminOnly = false }: { children: ReactNode; 
 }
 
 export default function App() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  const defaultRoute = !loading && isAuthenticated && user?.role === 'ADMIN' ? '/admin' : '/dashboard';
 
   return (
     <Routes>
-      <Route path="/login" element={!loading && isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/register" element={!loading && isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
+      <Route path="/login" element={!loading && isAuthenticated ? <Navigate to={defaultRoute} replace /> : <Login />} />
+      <Route path="/register" element={!loading && isAuthenticated ? <Navigate to={defaultRoute} replace /> : <Register />} />
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            {user?.role === 'ADMIN' ? <Navigate to="/admin" replace /> : <Dashboard />}
           </ProtectedRoute>
         }
       />
@@ -47,8 +48,8 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to={defaultRoute} replace />} />
+      <Route path="*" element={<Navigate to={defaultRoute} replace />} />
     </Routes>
   );
 }

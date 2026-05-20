@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { api } from '../api/client';
 
 type JwtUser = {
   sub: string;
@@ -7,6 +8,14 @@ type JwtUser = {
   role?: string;
   email?: string;
   name?: string;
+  permissions?: string[];
+};
+
+type UserProfile = {
+  id: string;
+  role?: string;
+  email?: string;
+  name?: string | null;
   permissions?: string[];
 };
 
@@ -59,13 +68,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const decoded = decodeToken(token);
       if (decoded.exp * 1000 <= Date.now()) {
         logout();
-      } else {
-        setUser({ ...decoded, role: decoded.role ?? 'USER', permissions: decoded.permissions ?? [] });
+        return;
       }
+      const baseUser = { ...decoded, role: decoded.role ?? 'USER', permissions: decoded.permissions ?? [] };
+      setUser(baseUser);
+      setLoading(true);
+
+      let isActive = true;
+      void (async () => {
+        try {
+          const profile = await api.get<UserProfile>(`/users/${decoded.sub}`);
+          if (!isActive) {
+            return;
+          }
+          setUser({
+            ...baseUser,
+            role: profile.role ?? baseUser.role,
+            permissions: profile.permissions ?? baseUser.permissions,
+            name: profile.name ?? baseUser.name,
+            email: profile.email ?? baseUser.email,
+          });
+        } catch {
+          if (isActive) {
+            setUser(baseUser);
+          }
+        } finally {
+          if (isActive) {
+            setLoading(false);
+          }
+        }
+      })();
+
+      return () => {
+        isActive = false;
+      };
     } catch {
       logout();
-    } finally {
-      setLoading(false);
     }
   }, [token]);
 

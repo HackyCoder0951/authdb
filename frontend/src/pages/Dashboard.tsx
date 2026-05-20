@@ -14,6 +14,10 @@ type Task = {
   created_at?: string;
 };
 
+function hasPermission(user: { permissions?: string[] } | null, permission: string) {
+  return Boolean(user?.permissions?.includes(permission));
+}
+
 function taskId(task: Task) {
   return task._id ?? task.id ?? '';
 }
@@ -26,8 +30,16 @@ export default function Dashboard() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const canRead = hasPermission(user, 'read:tasks');
+  const canWrite = hasPermission(user, 'write:tasks');
+  const canDelete = hasPermission(user, 'delete:tasks');
 
   const loadTasks = useCallback(async () => {
+    if (!canRead) {
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const response = await api.get<Task[]>('/tasks/');
@@ -37,7 +49,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, canRead]);
 
   useEffect(() => {
     void loadTasks();
@@ -53,6 +65,10 @@ export default function Dashboard() {
 
   const submitTask = async (event: FormEvent) => {
     event.preventDefault();
+    if (!canWrite) {
+      showToast('You do not have permission to manage tasks', 'error');
+      return;
+    }
     try {
       const payload = { title, description: description || undefined };
       if (editingId) {
@@ -70,6 +86,10 @@ export default function Dashboard() {
   };
 
   const deleteTask = async (id: string) => {
+    if (!canDelete) {
+      showToast('You do not have permission to delete tasks', 'error');
+      return;
+    }
     try {
       await api.delete(`/tasks/${id}`);
       showToast('Task deleted', 'success');
@@ -80,6 +100,10 @@ export default function Dashboard() {
   };
 
   const startEdit = (task: Task) => {
+    if (!canWrite) {
+      showToast('You do not have permission to edit tasks', 'error');
+      return;
+    }
     setEditingId(taskId(task));
     setTitle(task.title);
     setDescription(task.description ?? '');
@@ -105,13 +129,13 @@ export default function Dashboard() {
         <form className="task-form" onSubmit={submitTask}>
           <label>
             Title
-            <input value={title} onChange={(event) => setTitle(event.target.value)} required />
+            <input value={title} onChange={(event) => setTitle(event.target.value)} required disabled={!canWrite} />
           </label>
           <label>
             Description
-            <input value={description} onChange={(event) => setDescription(event.target.value)} />
+            <input value={description} onChange={(event) => setDescription(event.target.value)} disabled={!canWrite} />
           </label>
-          <button className="button button-primary" type="submit">
+          <button className="button button-primary" type="submit" disabled={!canWrite}>
             {editingId ? 'Update task' : 'Add task'}
           </button>
           {editingId && (
@@ -119,18 +143,22 @@ export default function Dashboard() {
               Cancel
             </button>
           )}
+          {!canWrite && <p>You do not have permission to create or update tasks.</p>}
         </form>
       </section>
 
       <section className="task-grid">
-        {loading ? (
+        {!canRead ? (
+          <div className="empty-state">You do not have permission to view tasks.</div>
+        ) : loading ? (
           <div className="empty-state">Loading tasks</div>
         ) : tasks.length === 0 ? (
           <div className="empty-state">No tasks yet.</div>
         ) : (
           tasks.map((task) => {
             const id = taskId(task);
-            const canEdit = user?.role === 'ADMIN' || user?.sub === task.owner_id;
+            const canEdit = canWrite && (user?.role === 'ADMIN' || user?.sub === task.owner_id);
+            const canRemove = canDelete && (user?.role === 'ADMIN' || user?.sub === task.owner_id);
             return (
               <article className="task-card" key={id}>
                 <div>
@@ -143,7 +171,7 @@ export default function Dashboard() {
                       Edit
                     </button>
                   )}
-                  {canEdit && (
+                  {canRemove && (
                     <button className="button button-danger" type="button" onClick={() => void deleteTask(id)}>
                       Delete
                     </button>

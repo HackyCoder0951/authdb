@@ -6,6 +6,21 @@ import { useToast } from '../context/ToastContext';
 
 type LoginResponse = { access_token: string; token_type: string };
 
+function getRoleFromToken(token: string) {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) {
+      return null;
+    }
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const decoded = JSON.parse(atob(padded)) as { role?: string };
+    return decoded.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +41,8 @@ export default function Login() {
       });
       login(response.access_token);
       showToast('Signed in successfully', 'success');
-      navigate('/dashboard');
+      const role = getRoleFromToken(response.access_token);
+      navigate(role === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not sign in', 'error');
     } finally {

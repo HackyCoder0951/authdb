@@ -61,11 +61,26 @@ async def get_current_user(
         "role": user.get("role", UserRole.USER.value),
         "email": user.get("email"),
         "name": user.get("name"),
+        "permissions": user.get("permissions", []),
     }
 
 
 def is_admin(user: dict[str, Any]) -> bool:
     return user.get("role") == UserRole.ADMIN.value
+
+
+def has_permission(user: dict[str, Any], permission: str) -> bool:
+    return permission in (user.get("permissions") or [])
+
+
+def require_permission(user: dict[str, Any], permission: str) -> None:
+    if is_admin(user):
+        return
+    if not has_permission(user, permission):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
 
 
 def serialize_task(task: dict[str, Any]) -> TaskResponse:
@@ -97,6 +112,7 @@ async def create_task(
     current_user: dict[str, Any] = Depends(get_current_user),
     db=Depends(get_database),
 ):
+    require_permission(current_user, "write:tasks")
     logger.info("Creating task for user %s", current_user["id"])
     task_dict = task_in.dict()
     task_dict["owner_id"] = current_user["id"]
@@ -114,6 +130,7 @@ async def read_tasks(
     current_user: dict[str, Any] = Depends(get_current_user),
     db=Depends(get_database),
 ):
+    require_permission(current_user, "read:tasks")
     logger.info("Fetching tasks for user %s", current_user["id"])
     tasks = (
         await db.tasks.find({"owner_id": current_user["id"]})
@@ -155,6 +172,7 @@ async def read_task(
     current_user: dict[str, Any] = Depends(get_current_user),
     db=Depends(get_database),
 ):
+    require_permission(current_user, "read:tasks")
     task = await get_owned_task_or_404(task_id, current_user, db)
     return serialize_task(task)
 
@@ -166,6 +184,7 @@ async def update_task(
     current_user: dict[str, Any] = Depends(get_current_user),
     db=Depends(get_database),
 ):
+    require_permission(current_user, "write:tasks")
     task = await get_owned_task_or_404(task_id, current_user, db)
     if task["owner_id"] != current_user["id"]:
         raise HTTPException(
@@ -190,6 +209,7 @@ async def delete_task(
     current_user: dict[str, Any] = Depends(get_current_user),
     db=Depends(get_database),
 ):
+    require_permission(current_user, "delete:tasks")
     task = await get_owned_task_or_404(task_id, current_user, db)
     await db.tasks.delete_one({"_id": task["_id"]})
     return {"message": "Task deleted successfully"}

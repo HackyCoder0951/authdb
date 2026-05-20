@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import AppShell from '../components/AppShell';
 import ServiceHealth from '../components/ServiceHealth';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 type User = {
@@ -21,6 +22,7 @@ function userId(user: User) {
 }
 
 export default function AdminPanel() {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,14 @@ export default function AdminPanel() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'USER' | 'ADMIN'>('USER');
   const [permissions, setPermissions] = useState<string[]>([]);
+  const canManageUsers = Boolean(user?.permissions?.includes('manage:users'));
 
   const loadUsers = useCallback(async () => {
+    if (!canManageUsers) {
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const response = await api.get<User[]>('/users/');
@@ -41,7 +49,7 @@ export default function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, canManageUsers]);
 
   useEffect(() => {
     void loadUsers();
@@ -75,6 +83,10 @@ export default function AdminPanel() {
 
   const submitUser = async (event: FormEvent) => {
     event.preventDefault();
+    if (!canManageUsers) {
+      showToast('You do not have permission to manage users', 'error');
+      return;
+    }
     try {
       if (editing) {
         await api.put(`/users/${userId(editing)}`, { name: name || undefined, role, permissions });
@@ -91,6 +103,10 @@ export default function AdminPanel() {
   };
 
   const deleteUser = async (id: string) => {
+    if (!canManageUsers) {
+      showToast('You do not have permission to manage users', 'error');
+      return;
+    }
     if (!window.confirm('Delete this user?')) {
       return;
     }
@@ -124,102 +140,108 @@ export default function AdminPanel() {
       </section>
 
       <section className="admin-layout">
-        <form className="panel form admin-form" onSubmit={submitUser}>
-          <h2>{editing ? 'Edit user' : 'Create user'}</h2>
-          <label>
-            Name
-            <input value={name} onChange={(event) => setName(event.target.value)} />
-          </label>
-          <label>
-            Email
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type="email"
-              disabled={Boolean(editing)}
-              required={!editing}
-            />
-          </label>
-          {!editing && (
-            <label>
-              Password
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
-            </label>
-          )}
-          <label>
-            Role
-            <select value={role} onChange={(event) => setRole(event.target.value as 'USER' | 'ADMIN')}>
-              <option value="USER">USER</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-          </label>
-          <div>
-            <span className="field-label">Permissions</span>
-            <div className="permission-list">
-              {PERMISSIONS.map((permission) => (
-                <label className="check-row" key={permission}>
-                  <input
-                    type="checkbox"
-                    checked={permissions.includes(permission)}
-                    onChange={() => togglePermission(permission)}
-                  />
-                  {permission}
+        {!canManageUsers ? (
+          <div className="panel empty-state">You do not have permission to manage users.</div>
+        ) : (
+          <>
+            <form className="panel form admin-form" onSubmit={submitUser}>
+              <h2>{editing ? 'Edit user' : 'Create user'}</h2>
+              <label>
+                Name
+                <input value={name} onChange={(event) => setName(event.target.value)} />
+              </label>
+              <label>
+                Email
+                <input
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  type="email"
+                  disabled={Boolean(editing)}
+                  required={!editing}
+                />
+              </label>
+              {!editing && (
+                <label>
+                  Password
+                  <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" required />
                 </label>
-              ))}
-            </div>
-          </div>
-          <div className="form-actions">
-            <button className="button button-primary" type="submit">
-              {editing ? 'Update user' : 'Create user'}
-            </button>
-            {editing && (
-              <button className="button button-muted" type="button" onClick={resetForm}>
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
+              )}
+              <label>
+                Role
+                <select value={role} onChange={(event) => setRole(event.target.value as 'USER' | 'ADMIN')}>
+                  <option value="USER">USER</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+              </label>
+              <div>
+                <span className="field-label">Permissions</span>
+                <div className="permission-list">
+                  {PERMISSIONS.map((permission) => (
+                    <label className="check-row" key={permission}>
+                      <input
+                        type="checkbox"
+                        checked={permissions.includes(permission)}
+                        onChange={() => togglePermission(permission)}
+                      />
+                      {permission}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="form-actions">
+                <button className="button button-primary" type="submit">
+                  {editing ? 'Update user' : 'Create user'}
+                </button>
+                {editing && (
+                  <button className="button button-muted" type="button" onClick={resetForm}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
 
-        <div className="panel table-panel">
-          {loading ? (
-            <div className="empty-state">Loading users</div>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Permissions</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => {
-                  const id = userId(user);
-                  return (
-                    <tr key={id}>
-                      <td>{user.name || 'Unnamed'}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span className={`role-pill role-${user.role.toLowerCase()}`}>{user.role}</span>
-                      </td>
-                      <td>{user.permissions?.length ? user.permissions.join(', ') : '-'}</td>
-                      <td className="table-actions">
-                        <button className="button button-muted" type="button" onClick={() => editUser(user)}>
-                          Edit
-                        </button>
-                        <button className="button button-danger" type="button" onClick={() => void deleteUser(id)}>
-                          Delete
-                        </button>
-                      </td>
+            <div className="panel table-panel">
+              {loading ? (
+                <div className="empty-state">Loading users</div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Permissions</th>
+                      <th />
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => {
+                      const id = userId(user);
+                      return (
+                        <tr key={id}>
+                          <td>{user.name || 'Unnamed'}</td>
+                          <td>{user.email}</td>
+                          <td>
+                            <span className={`role-pill role-${user.role.toLowerCase()}`}>{user.role}</span>
+                          </td>
+                          <td>{user.permissions?.length ? user.permissions.join(', ') : '-'}</td>
+                          <td className="table-actions">
+                            <button className="button button-muted" type="button" onClick={() => editUser(user)}>
+                              Edit
+                            </button>
+                            <button className="button button-danger" type="button" onClick={() => void deleteUser(id)}>
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
+        )}
       </section>
     </AppShell>
   );
