@@ -1,85 +1,92 @@
-# Backend Documentation
+# Backend Services Architecture
 
 ## Overview
-The backend is a high-performance REST API built with **FastAPI** and **MongoDB**. It handles user authentication, task management, and enforces role-based access control.
+The backend is a microservices-based system using FastAPI, MongoDB, and RabbitMQ. A lightweight Nginx gateway routes all `/api/v1/*` traffic to the correct service.
 
 ## Tech Stack
-- **Framework**: FastAPI (Python 3.10+)
-- **Database**: MongoDB (Motor / Pymongo)
-- **Authentication**: JWT (JSON Web Tokens) with OAuth2 Password Bearer
-- **Validation**: Pydantic Models
-- **Security**: Passlib (Bcrypt)
+- FastAPI (Python 3.11+)
+- MongoDB (Motor async client)
+- JWT for auth
+- RabbitMQ for events and RPC
+- Nginx gateway for routing
 
 ## Architecture
 
-The backend follows a modular architecture separating routes, business logic, and database interactions.
-
 ```mermaid
 graph TD
-    Client[Client / Frontend] -->|HTTP Requests| API[FastAPI Application]
-    
-    subgraph "API Layer"
-        API --> AuthRouter[Auth Routes]
-        API --> UserRouter[User Routes]
-        API --> TaskRouter[Task Routes]
-    end
-    
-    subgraph "Service & Logic Layer"
-        AuthRouter --> AuthController[Auth Logic]
-        UserRouter --> UserCRUD[User CRUD]
-        TaskRouter --> TaskCRUD[Task CRUD]
-    end
-    
-    subgraph "Data Layer"
-        AuthController --> DB[(MongoDB)]
-        UserCRUD --> DB
-        TaskCRUD --> DB
-    end
-    
-    TaskRouter -.->|Depends| AuthController
+    Client[Frontend] --> Gateway[Nginx Gateway]
+    Gateway --> AuthSvc[auth-service]
+    Gateway --> UserSvc[user-service]
+    Gateway --> TaskSvc[task-service]
+
+    AuthSvc --> Mongo[(MongoDB)]
+    UserSvc --> Mongo
+    TaskSvc --> Mongo
+
+    AuthSvc --> MQ[(RabbitMQ)]
+    UserSvc --> MQ
+    TaskSvc --> MQ
 ```
 
-## Authentication Flow
+## Services and Responsibilities
 
-We use JWT for stateless authentication.
+### auth-service
+- Issues JWT access tokens.
+- Handles registration and login.
+- Publishes auth events to RabbitMQ.
+
+### user-service
+- Manages user profiles, roles, and permissions.
+- Admin-only CRUD for users.
+- Runs an RPC server for user lookups.
+
+### task-service
+- Manages task CRUD.
+- Enforces ownership and permission checks (`read:tasks`, `write:tasks`, `delete:tasks`).
+- Uses RPC calls to the user-service when needed.
+
+### shared library
+- MongoDB connection helpers.
+- JWT encoding/decoding.
+- Messaging helpers (publisher, subscriber, RPC client).
+
+## Gateway Routing
+- `/api/v1/auth/*` -> auth-service
+- `/api/v1/users/*` -> user-service
+- `/api/v1/tasks/*` -> task-service
+- `/api/v1/health/*` -> health checks for each service
+
+## Authentication Flow
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant A as Auth API
-    participant D as Database
-    
-    U->>A: POST /auth/login (email, password)
-    A->>D: Find User by Email
-    D-->>A: User Data
-    A->>A: Verify Password Hash
-    alt Valid Credentials
-        A->>A: Generate JWT Access Token
-        A-->>U: Return Token {access_token, token_type}
-    else Invalid
-        A-->>U: 401 Unauthorized
-    end
-    
-    Note over U, A: Subsequent Requests
-    U->>A: GET /tasks (Header: Bearer Token)
-    A->>A: Decode & Verify Token
-    A->>D: Fetch User (Dependency Injection)
-    A-->>U: Protected Data
+    participant G as Gateway
+    participant A as Auth Service
+    participant DB as MongoDB
+
+    U->>G: POST /api/v1/auth/login
+    G->>A: forward request
+    A->>DB: find user
+    A-->>U: JWT access token
 ```
 
-## Key Components
+## Authorization Model
+- Roles: `USER`, `ADMIN`.
+- Permissions: `read:tasks`, `write:tasks`, `delete:tasks`, `manage:users`.
+- Task service enforces permissions server-side.
+- User service limits admin operations to admin role.
 
-### 1. Database Connection (`app/db/mongodb.py`)
-Handles the asynchronous connection to MongoDB using `motor`. It connects on startup and closes on shutdown.
+## Health Endpoints
+- Gateway: `/api/v1/health`
+- Auth: `/api/v1/health/auth`
+- Users: `/api/v1/health/users`
+- Tasks: `/api/v1/health/tasks`
 
-### 2. Authentication (`app/routes/auth.py`)
-- **Login**: Validates credentials and returns a JWT.
-- **Register**: Creates a new user with a hashed password.
-
-### 3. Dependencies (`app/core/dependencies.py`)
-- `get_current_user`: Decodes the JWT from the request header and retrieves the user context. This is what secures the endpoints.
-
-### 4. Task Management (`app/routes/tasks.py`)
-- Implements CRUD operations.
-- Enforces ownership: Users can only see/edit their own tasks.
-- **Admin Override**: Admins can see/delete all tasks.
+## Runtime Topology (Docker)
+- `auth-service` on port 8001
+- `user-service` on port 8002
+- `task-service` on port 8003
+- `gateway` on port 8080
+- `frontend` on port 5173
+- `rabbitmq` on 5672 / 15672

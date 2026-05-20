@@ -1,73 +1,74 @@
-# Frontend Documentation
+# Frontend Architecture
 
 ## Overview
-The frontend is a modern Single Page Application (SPA) built with **React 19**, **Vite**, and **TypeScript**. It provides a responsive interface for users to manage their tasks and keeps track of authentication state using React Context.
+The frontend is a React + TypeScript single page app built with Vite. It handles authentication, task management, and admin user management while enforcing permission-based UI gates.
 
 ## Tech Stack
-- **Framework**: React 19
-- **Build Tool**: Vite
-- **Language**: TypeScript
-- **State Management**: React Context API
-- **Routing**: React Router DOM v7
-- **HTTP Client**: Axios
+- React 19 + TypeScript
+- Vite build tooling
+- React Router DOM
+- Fetch-based API client
+- Context API for auth + toasts
 
-## Component Architecture
-
-The application is structured around a central Authentication Context that provides user state to all pages.
+## High-Level Architecture
 
 ```mermaid
 graph TD
-    App[App Component] --> AuthProvider[Auth Context Provider]
-    AuthProvider --> Router[App Router]
-    
-    subgraph "Public Routes"
-        Router --> Login[Login Page]
-        Router --> Register[Register Page]
-        Router --> Landing[Landing Page]
-    end
-    
-    subgraph "Protected Routes"
-        Router --> Protected{Protected Route Wrapper}
-        Protected --> Dashboard[Dashboard / Task List]
-        Protected --> Profile[User Profile]
-    end
-    
-    Dashboard --> TaskList[Task List Component]
-    Dashboard --> AddTask[Add Task Form]
+    App[App Routes] --> AuthProvider[Auth Context]
+    App --> ToastProvider[Toast Context]
+    App --> Router[React Router]
+
+    Router --> Login[Login]
+    Router --> Register[Register]
+    Router --> Dashboard[Dashboard]
+    Router --> AdminPanel[Admin Panel]
+
+    Dashboard --> AppShell[App Shell]
+    AdminPanel --> AppShell
 ```
 
-## Implementation Details
+## Routing and Guards
+- Routes are defined in `App.tsx`.
+- `ProtectedRoute` redirects unauthenticated users to `/login`.
+- Admin users are redirected to `/admin` by default.
+- Permission-based gates hide actions (create, edit, delete) when the user does not have the required permission.
 
-### 1. Authentication Context (`src/context/AuthContext.tsx`)
-This is the heart of the frontend state.
-- **State**: `user` (User object | null), `token` (string | null), `isAuthenticated` (boolean).
-- **Actions**: `login(token)`, `logout()`.
-- **Persistance**: Checks `localStorage` on load to restore the session.
-
-### 2. API Integration (`src/api/axios.ts`)
-We use a centralized Axios instance.
-- **Interceptors**: Automatically attaches the `Authorization: Bearer <token>` header to every request if a token exists in the context/storage.
-- **Base URL**: Configured to point to the FastAPI backend.
-
-### 3. Protected Routes
-A wrapper component checks the `isAuthenticated` flag.
-- **If True**: Renders the child component (e.g., Dashboard).
-- **If False**: Redirects to `/login`.
-
-### 4. Task Management Flow
+## Authentication Flow
+1. User signs in via `/auth/login`.
+2. JWT is stored in `localStorage` and decoded in the auth context.
+3. The app fetches `/users/:id` to hydrate permissions and profile details.
+4. Auth state drives routing and permission gates.
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant UI as React Component
-    participant C as Auth Context
-    participant API as Axios/Backend
-    
-    U->>UI: Clicks "Add Task"
-    UI->>API: POST /tasks (payload)
-    activate API
-    API-->>UI: 201 Created (New Task Data)
-    deactivate API
-    UI->>UI: Update Local State (Tasks Array)
-    UI-->>U: Show "Task Added" Toast
+    participant UI as Frontend
+    participant A as Auth Context
+    participant API as Gateway
+
+    U->>UI: Submit login form
+    UI->>API: POST /api/v1/auth/login
+    API-->>UI: {access_token}
+    UI->>A: store token
+    A->>API: GET /api/v1/users/:id
+    API-->>A: user profile + permissions
 ```
+
+## Permissions and UI Gating
+- `read:tasks` controls task list visibility.
+- `write:tasks` controls create and edit actions.
+- `delete:tasks` controls delete actions.
+- `manage:users` controls access to admin user management UI.
+
+## API Client
+- The client in `src/api/client.ts` adds `Authorization: Bearer <token>` when a token is present.
+- Base URL defaults to `/api/v1`, routed via the gateway container.
+
+## Key Files
+- `src/App.tsx`: routes and auth redirects.
+- `src/context/AuthContext.tsx`: token handling, profile hydration, permission state.
+- `src/context/ToastContext.tsx`: toast notifications.
+- `src/pages/Dashboard.tsx`: task CRUD UI with permission gates.
+- `src/pages/AdminPanel.tsx`: user management UI with permission gates.
+- `src/components/AppShell.tsx`: top bar and layout shell.
+- `src/components/ServiceHealth.tsx`: gateway health indicator.

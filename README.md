@@ -217,6 +217,7 @@ npm run dev
 - API rate limiting
 ## Detailed Documentation
 For deep dives into specific areas, please refer to the `docs/` directory:
+- **[System Architecture](docs/Architecture.md)**: End-to-end frontend, gateway, and service topology.
 - **[Backend Architecture](docs/Back-End.md)**: Logic flow, Auth, and Task management.
 - **[Frontend Architecture](docs/Front-End.md)**: Component structure and State management.
 - **[Database Schema](docs/DB_Schema.md)**: ERD diagrams and Collection details.
