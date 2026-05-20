@@ -12,3 +12,7 @@ dist/
 
 
 .github/prompts/
+
+legacy/.*
+
+/legacy/
