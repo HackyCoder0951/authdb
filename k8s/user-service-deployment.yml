@@ -31,6 +31,23 @@ spec:
                 secretKeyRef:
                   name: authdb-secret
                   key: SECRET_KEY
+            - name: MONGODB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: authdb-secret
+                  key: MONGODB_ROOT_USER
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authdb-secret
+                  key: MONGODB_ROOT_PASSWORD
+            - name: MONGODB_DB
+              valueFrom:
+                secretKeyRef:
+                  name: authdb-secret
+                  key: MONGODB_DB
+            - name: MONGODB_URL
+              value: mongodb://$(MONGODB_USER):$(MONGODB_PASSWORD)@mongodb:27017/$(MONGODB_DB)?authSource=admin
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 secretKeyRef:

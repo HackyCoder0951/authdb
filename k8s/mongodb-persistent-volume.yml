@@ -21,6 +21,8 @@ metadata:
     app.kubernetes.io/name: mongodb
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: mongodb
@@ -36,6 +38,22 @@ spec:
           ports:
             - containerPort: 27017
               name: mongodb
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: authdb-secret
+                  key: MONGODB_ROOT_USER
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: authdb-secret
+                  key: MONGODB_ROOT_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: authdb-secret
+                  key: MONGODB_DB
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
