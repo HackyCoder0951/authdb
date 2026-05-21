@@ -189,3 +189,53 @@ Apply manifests in this order:
 - Auth flow works end-to-end
 - Task and user services reachable from gateway
 - MongoDB and RabbitMQ healthy
+
+## 16) Local Minikube Step-by-Step (Commands)
+### STEP 2 — Enable Required Addons
+Enable ingress and metrics-server:
+```bash
+minikube addons enable ingress
+minikube addons enable metrics-server
+```
+
+### STEP 3 — Use Minikube Docker Environment
+Point Docker to the minikube daemon so images are available without a registry:
+```bash
+eval $(minikube docker-env)
+```
+
+### STEP 4 — Build All Images
+Run from the repo root:
+```bash
+docker build -t authdb/auth-service:v1 ./services/auth-services
+docker build -t authdb/user-service:v1 ./services/user-services
+docker build -t authdb/tasks-service:v1 ./services/tasks-services
+docker build -t authdb/frontend:v1 ./frontend
+docker build -t authdb/gateway:v1 ./gateway
+```
+
+### STEP 5 — Update Deployment YAML Files
+Update image names to match the tags built in STEP 4:
+- k8s/auth-service-deployment.yml -> authdb/auth-service:v1
+- k8s/user-service-deployment.yml -> authdb/user-service:v1
+- k8s/task-service-deployment.yml -> authdb/tasks-service:v1
+- k8s/frontend-deployment.yml -> authdb/frontend:v1
+- k8s/gateway-deployment.yml -> authdb/gateway:v1
+
+### STEP 6 — Deploy Kubernetes Resources
+Apply manifests in order:
+```bash
+kubectl apply -f k8s/namespace.yml
+kubectl apply -f k8s/secret.yml
+kubectl apply -f k8s/configmap.yml
+kubectl apply -f k8s/mongodb-persistent-volume.yml
+kubectl apply -f k8s/rabbitmq-deployment.yml
+kubectl apply -f k8s/auth-service-deployment.yml
+kubectl apply -f k8s/user-service-deployment.yml
+kubectl apply -f k8s/task-service-deployment.yml
+kubectl apply -f k8s/gateway-deployment.yml
+kubectl apply -f k8s/frontend-deployment.yml
+kubectl apply -f k8s/service.yml
+kubectl apply -f k8s/ingress.yml
+kubectl apply -f k8s/hpa.yml
+```
