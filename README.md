@@ -222,6 +222,8 @@ For deep dives into specific areas, please refer to the `docs/` directory:
 - **[Frontend Architecture](docs/Front-End.md)**: Component structure and State management.
 - **[Database Schema](docs/DB_Schema.md)**: ERD diagrams and Collection details.
 - **[Scalability Guide](docs/Scalability_Guide.md)**: Scalability and Future Improvements.
+- **[Containerization and Kubernetes Architecture](docs/Containerization_Kubernetes_Architecture.md)**: Docker, Compose, Kubernetes, and service communication diagrams.
+- **[Containerization and Kubernetes Fundamentals](docs/Containerization_Kubernetes_Fundamentals.md)**: Core Docker and Kubernetes concepts used by this project's deployments.
 
 ## CI/CD Pipeline
 Automated testing and build pipelines are implemented using **GitHub Actions**.
