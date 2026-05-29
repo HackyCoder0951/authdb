@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: authdb-frontend:latest
+          image: 765951922643.dkr.ecr.ap-south-1.amazonaws.com/authdb/frontend:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

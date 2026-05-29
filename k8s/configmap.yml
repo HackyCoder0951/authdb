@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: authdb
 data:
   DB_NAME: auth_scaleDB
-  MONGODB_URL: mongodb://mongodb:27017/auth_scaleDB?authSource=admin
+  MONGODB_URL: mongodb://$(MONGODB_USER):$(MONGODB_PASSWORD)@mongodb:27017/$(MONGODB_DB)?authSource=admin
   USER_RPC_QUEUE: user_rpc_queue
   ALGORITHM: HS256
   ACCESS_TOKEN_EXPIRE_MINUTES: "30"
