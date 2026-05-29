@@ -19,3 +19,13 @@ dist/
 legacy/.*
 
 /legacy/
+
+# Terraform local state and generated files
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+terraform.tfvars.example
+terraform.tfvars.json
+.terraform.lock.hcl
