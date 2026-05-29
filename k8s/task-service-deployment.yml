@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: task-service
-          image: authdb-task-service:latest
+          image: 765951922643.dkr.ecr.ap-south-1.amazonaws.com/authdb/task-service:v1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8003
