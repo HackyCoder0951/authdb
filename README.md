@@ -218,6 +218,9 @@ npm run dev
 ## Detailed Documentation
 For deep dives into specific areas, please refer to the `docs/` directory:
 - **[System Architecture](docs/Architecture.md)**: End-to-end frontend, gateway, and service topology.
+- **[AWS Full Cloud Deployment Guide](docs/AWS_Full_Cloud_Deployment_Guide.md)**: Complete AWS preflight and deployment runbook covering account, IAM, VPC, subnets, security groups, EKS, ECR, load balancers, DNS, and rollout checks.
+- **[AWS Kubernetes Deployment Guide](docs/AWS_Kubernetes_Deployment_Guide.md)**: Step-by-step EKS, ECR, Kubernetes, storage, ingress, verification, and rollback guide.
+- **[Terraform AWS EKS Deployment](terraform/aws-eks/README.md)**: Terraform stack for VPC, EKS, ECR, and Kubernetes workloads using only `m7i-flex.large` worker nodes.
 - **[Backend Architecture](docs/Back-End.md)**: Logic flow, Auth, and Task management.
 - **[Frontend Architecture](docs/Front-End.md)**: Component structure and State management.
 - **[Database Schema](docs/DB_Schema.md)**: ERD diagrams and Collection details.
