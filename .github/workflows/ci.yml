@@ -1,71 +1,185 @@
-name: CI
+name: AuthDB Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - microservices
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - microservices
+  workflow_dispatch:
+    inputs:
+      deploy_prod:
+        description: "Deploy the current commit to the existing AWS EKS prod stack"
+        required: true
+        type: choice
+        default: "false"
+        options:
+          - "false"
+          - "true"
+      image_tag:
+        description: "Container image tag to build and deploy"
+        required: true
+        default: "v1"
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "24"
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+  CLUSTER_NAME: ${{ vars.CLUSTER_NAME || 'authdb-prod' }}
+  NAMESPACE: ${{ vars.NAMESPACE || 'authdb' }}
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || 'v1' }}
 
 jobs:
-  backend-test:
+  dev:
+    name: Dev
     runs-on: ubuntu-latest
 
     env:
-      MONGODB_URL: ${{ secrets.MONGODB_URL }}
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-
-    services:
-      mongo:
-        image: mongo:6
-        ports:
-          - 27017:27017
+      PROJECT_NAME: auth_scale
+      DB_NAME: auth_scaleDB
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      MONGODB_URL: mongodb://localhost:27017
+      SECRET_KEY: 09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+      USER_RPC_QUEUE: user_rpc_queue
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            services/auth-services/requirements.txt
+            services/user-services/requirements.txt
+            services/tasks-services/requirements.txt
 
-      - name: Install backend dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
+          pip install -r services/auth-services/requirements.txt
 
-      - name: Verify Backend APIs
+      - name: Compile backend services
         run: |
-          cd backend
-          export PYTHONPATH=$(pwd)
-          python app/routes/api/v2/verify_db.py
+          python -m compileall shared services/auth-services services/user-services services/tasks-services
 
-      - name: Start Backend
+      - name: Import FastAPI applications
         run: |
-          cd backend
-          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          sleep 8
-
-  frontend-build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+          PYTHONPATH="$PWD/services/auth-services:$PWD" python -c "import app.main"
+          PYTHONPATH="$PWD/services/user-services:$PWD" python -c "import app.main"
+          PYTHONPATH="$PWD/services/tasks-services:$PWD" python -c "import app.main"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+        working-directory: frontend
+        run: npm ci
 
       - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build auth-service image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/auth-services/Dockerfile
+          push: false
+          tags: authdb/auth-service:${{ env.IMAGE_TAG }}
+          load: false
+
+      - name: Build user-service image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/user-services/Dockerfile
+          push: false
+          tags: authdb/user-service:${{ env.IMAGE_TAG }}
+          load: false
+
+      - name: Build task-service image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/tasks-services/Dockerfile
+          push: false
+          tags: authdb/task-service:${{ env.IMAGE_TAG }}
+          load: false
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: false
+          tags: authdb/frontend:${{ env.IMAGE_TAG }}
+          load: false
+
+  prod:
+    name: Prod
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prod gate
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_prod != 'true' }}
         run: |
-          cd frontend
-          npm run build
+          echo "Prod stage reached successfully."
+          echo "No AWS deployment was requested."
+          echo "Run this workflow manually with deploy_prod=true to deploy to EKS."
+
+      - name: Configure AWS credentials
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_prod == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up kubectl
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_prod == 'true' }}
+        uses: azure/setup-kubectl@v4
+
+      - name: Deploy to existing AWS EKS stack
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_prod == 'true' }}
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          CLUSTER_NAME: ${{ env.CLUSTER_NAME }}
+          NAMESPACE: ${{ env.NAMESPACE }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          BUILD_AND_PUSH: "true"
+          APPLY_MANIFESTS: "false"
+          REQUIRE_EXISTING_STACK: "true"
+          CREATE_MISSING_ECR: "false"
+          RUN_HEALTHCHECK: "true"
+        run: ./scripts/deploy.sh

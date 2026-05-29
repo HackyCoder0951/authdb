@@ -16,6 +16,8 @@ BUILD_AND_PUSH="${BUILD_AND_PUSH:-true}"
 APPLY_MANIFESTS="${APPLY_MANIFESTS:-false}"
 RUN_HEALTHCHECK="${RUN_HEALTHCHECK:-true}"
 ROLLOUT_TIMEOUT="${ROLLOUT_TIMEOUT:-300s}"
+REQUIRE_EXISTING_STACK="${REQUIRE_EXISTING_STACK:-true}"
+CREATE_MISSING_ECR="${CREATE_MISSING_ECR:-false}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -46,9 +48,49 @@ kubectl_aws() {
 ensure_ecr_repo() {
   local repo="$1"
   if ! aws ecr describe-repositories --repository-names "$repo" --region "$AWS_REGION" >/dev/null 2>&1; then
-    log "Creating ECR repository $repo"
-    aws ecr create-repository --repository-name "$repo" --region "$AWS_REGION" >/dev/null
+    if [[ "$CREATE_MISSING_ECR" == "true" ]]; then
+      log "Creating ECR repository $repo"
+      aws ecr create-repository --repository-name "$repo" --region "$AWS_REGION" >/dev/null
+    else
+      fail "Missing ECR repository: $repo. Create it first or set CREATE_MISSING_ECR=true."
+    fi
   fi
+}
+
+check_ecr_repo() {
+  local repo="$1"
+  aws ecr describe-repositories --repository-names "$repo" --region "$AWS_REGION" >/dev/null 2>&1
+}
+
+check_k8s_resource() {
+  local kind="$1"
+  local name="$2"
+  kubectl_aws get "$kind" "$name" -n "$KUBE_NAMESPACE" >/dev/null 2>&1
+}
+
+verify_existing_stack() {
+  log "Verifying existing AWS/EKS stack before deployment"
+
+  local cluster_status
+  cluster_status="$(aws eks describe-cluster --region "$AWS_REGION" --name "$CLUSTER_NAME" --query 'cluster.status' --output text)"
+  [[ "$cluster_status" == "ACTIVE" ]] || fail "EKS cluster $CLUSTER_NAME is not ACTIVE. Current status: $cluster_status"
+
+  kubectl_aws get namespace "$KUBE_NAMESPACE" >/dev/null || fail "Namespace $KUBE_NAMESPACE does not exist"
+
+  for repo in authdb/auth-service authdb/user-service authdb/task-service authdb/frontend; do
+    check_ecr_repo "$repo" || fail "Missing ECR repository: $repo"
+  done
+
+  for deployment in auth-service user-service task-service frontend gateway mongodb rabbitmq; do
+    check_k8s_resource deployment "$deployment" || fail "Missing deployment/$deployment in namespace $KUBE_NAMESPACE"
+  done
+
+  for service in auth-service user-service task-service frontend gateway mongodb rabbitmq; do
+    check_k8s_resource service "$service" || fail "Missing service/$service in namespace $KUBE_NAMESPACE"
+  done
+
+  check_k8s_resource pvc mongodb-data || fail "Missing pvc/mongodb-data in namespace $KUBE_NAMESPACE"
+  log "Existing stack verification passed"
 }
 
 build_and_push_image() {
@@ -78,6 +120,10 @@ ECR_REGISTRY="${ECR_REGISTRY:-${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.
 
 log "Updating kubeconfig for EKS cluster $CLUSTER_NAME in $AWS_REGION"
 KUBECONFIG="$KUBECONFIG_PATH" aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME" >/dev/null
+
+if [[ "$REQUIRE_EXISTING_STACK" == "true" ]]; then
+  verify_existing_stack
+fi
 
 if [[ "$BUILD_AND_PUSH" == "true" ]]; then
   ensure_ecr_repo authdb/auth-service
