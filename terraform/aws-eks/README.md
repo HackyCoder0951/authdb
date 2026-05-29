@@ -1,13 +1,15 @@
-# AuthDB Terraform AWS EKS Deployment
+## Architecture Layers
 
-This Terraform stack creates a cost-aware AWS Kubernetes deployment for AuthDB:
+| Layer | Terraform files | What it creates |
+| --- | --- | --- |
+| Network | `networking.tf`, `variables.tf` | VPC, public subnets, internet gateway, public route table, CIDR controls |
+| Identity and compute | `iam.tf`, `eks.tf` | IAM roles, EKS cluster, managed node group, EKS add-ons |
+| Registry | `ecr.tf`, `outputs.tf` | ECR repositories and output values for image publishing |
+| Kubernetes base | `kubernetes.tf` | Namespace, Secret, ConfigMap, PVC, and shared Kubernetes resources |
+| Kubernetes workloads | `kubernetes-apps.tf`, `kubernetes-services.tf` | Deployments, Services, and optional HPA |
+| Deployment helpers | `build-and-push.sh`, `outputs.tf` | Image publishing and kubectl/ECR helper commands |
 
-- VPC with two public subnets
-- Internet gateway and public route table
-- EKS cluster
-- One EKS managed node group using only `m7i-flex.large`
-- ECR repositories for project images
-- Optional Kubernetes workloads for frontend, gateway, FastAPI services, MongoDB, RabbitMQ, PVC, services, and HPA
+The public entry point is the Kubernetes `frontend` Service of type `LoadBalancer`. The gateway and backend services remain internal behind `ClusterIP` services, which is what the diagram in [docs/Architecture.md](../../docs/Architecture.md) captures.
 
 The worker node group is intentionally restricted to:
 
@@ -26,6 +28,16 @@ Workflow:
 1. Apply AWS infrastructure and ECR repos.
 2. Build and push Docker images.
 3. Apply Kubernetes workloads.
+
+## Generate the Architecture Doc
+
+The repo includes a small helper that turns Terraform outputs into a Markdown architecture summary with Mermaid diagrams:
+
+```bash
+bash ../../scripts/terraform-to-mermaid.sh > ../../docs/aws-architecture.generated.md
+```
+
+If you want the generated file to reflect a different workspace or Terraform directory, set `TERRAFORM_DIR` before running the script.
 
 ## Prerequisites
 
