@@ -1,0 +1,426 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  AuthDB AWS foundation and EKS architecture template.
+  This mirrors the repo's Terraform-backed EKS stack and keeps the Kubernetes
+  workload map visible for CloudFormation Designer and documentation.
+
+Metadata:
+  Architecture:
+    Summary:
+      - Browser -> frontend -> gateway -> auth-service, user-service, task-service
+      - auth-service, user-service, and task-service -> MongoDB and RabbitMQ
+      - frontend is the public entry point; gateway is the application API entry point
+    KubernetesWorkloads:
+      Namespace: authdb
+      ConfigMaps:
+        - authdb-config
+        - gateway-nginx-config
+      Secret:
+        - authdb-secret
+      PersistentVolumeClaim:
+        - mongodb-data
+      Deployments:
+        - name: frontend
+          image: <account>.dkr.ecr.<region>.amazonaws.com/authdb/frontend:v1
+          port: 80
+          replicas: 2
+        - name: gateway
+          image: nginx:1.27-alpine
+          port: 80
+          replicas: 2
+        - name: auth-service
+          image: <account>.dkr.ecr.<region>.amazonaws.com/authdb/auth-service:v1
+          port: 8001
+          replicas: 2
+        - name: user-service
+          image: <account>.dkr.ecr.<region>.amazonaws.com/authdb/user-service:v1
+          port: 8002
+          replicas: 2
+        - name: task-service
+          image: <account>.dkr.ecr.<region>.amazonaws.com/authdb/task-service:v1
+          port: 8003
+          replicas: 2
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          port: 5672
+          replicas: 1
+        - name: mongodb
+          image: mongo:7
+          port: 27017
+          replicas: 1
+      Services:
+        - name: frontend
+          type: ClusterIP
+          port: 80
+        - name: gateway
+          type: LoadBalancer
+          port: 80
+        - name: auth-service
+          type: ClusterIP
+          port: 8001
+        - name: user-service
+          type: ClusterIP
+          port: 8002
+        - name: task-service
+          type: ClusterIP
+          port: 8003
+        - name: rabbitmq
+          type: ClusterIP
+          ports:
+            - 5672
+            - 15672
+        - name: mongodb
+          type: ClusterIP
+          port: 27017
+      Ingress:
+        - name: authdb-ingress
+          backend: frontend:80
+      Notes: >
+        CloudFormation models the AWS foundation and EKS control plane.
+        Kubernetes Deployments, Services, Ingress, ConfigMaps, and Secrets are
+        captured here as the workload contract for the cluster rather than as
+        native CloudFormation resources.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: authdb
+    Description: Project and AWS resource prefix.
+
+  EnvironmentName:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - test
+      - staging
+      - prod
+    Description: Logical environment label used in tags and names.
+
+  KubernetesVersion:
+    Type: String
+    Default: '1.29'
+    Description: EKS Kubernetes version.
+
+  NodeInstanceType:
+    Type: String
+    Default: m7i-flex.large
+    AllowedPattern: '^[a-z0-9.]+$'
+    Description: Managed node group instance type.
+
+  NodeDesiredSize:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    Description: Desired worker node count.
+
+  NodeMinSize:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    Description: Minimum worker node count.
+
+  NodeMaxSize:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    Description: Maximum worker node count.
+
+  NodeDiskSizeGiB:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    Description: Disk size for each managed node.
+
+  ClusterEndpointPublicAccessCidrs:
+    Type: CommaDelimitedList
+    Default: 0.0.0.0/0
+    Description: CIDRs allowed to reach the public EKS API endpoint.
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR for the project VPC.
+
+  PublicSubnet1Cidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR for the first public subnet.
+
+  PublicSubnet2Cidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: CIDR for the second public subnet.
+
+Resources:
+  AuthDbVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-vpc'
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-igw'
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref AuthDbVpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AuthDbVpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-public-rt'
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachInternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AuthDbVpc
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PublicSubnet1Cidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-public-a'
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AuthDbVpc
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref PublicSubnet2Cidr
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-public-b'
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSVPCResourceController
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  EKSNodeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  AuthDbCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Sub '${ProjectName}-${EnvironmentName}'
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      Version: !Ref KubernetesVersion
+      ResourcesVpcConfig:
+        SubnetIds:
+          - !Ref PublicSubnet1
+          - !Ref PublicSubnet2
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
+        PublicAccessCidrs: !Ref ClusterEndpointPublicAccessCidrs
+      Logging:
+        ClusterLogging:
+          - Types:
+              - api
+              - audit
+              - authenticator
+              - controllerManager
+              - scheduler
+            Enabled: true
+      Tags:
+        Project: !Ref ProjectName
+        Environment: !Ref EnvironmentName
+
+  ManagedNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref AuthDbCluster
+      NodegroupName: !Sub '${ProjectName}-${EnvironmentName}-m7i-flex'
+      NodeRole: !GetAtt EKSNodeRole.Arn
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      AmiType: AL2023_x86_64_STANDARD
+      CapacityType: ON_DEMAND
+      DiskSize: !Ref NodeDiskSizeGiB
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      ScalingConfig:
+        DesiredSize: !Ref NodeDesiredSize
+        MinSize: !Ref NodeMinSize
+        MaxSize: !Ref NodeMaxSize
+      UpdateConfig:
+        MaxUnavailable: 1
+      Labels:
+        workload: !Ref ProjectName
+        instance_type: !Ref NodeInstanceType
+      Tags:
+        Project: !Ref ProjectName
+        Environment: !Ref EnvironmentName
+        Name: !Sub '${ProjectName}-${EnvironmentName}-m7i-flex'
+
+  VpcCniAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref AuthDbCluster
+      AddonName: vpc-cni
+      ResolveConflictsOnCreate: OVERWRITE
+      ResolveConflictsOnUpdate: OVERWRITE
+
+  KubeProxyAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref AuthDbCluster
+      AddonName: kube-proxy
+      ResolveConflictsOnCreate: OVERWRITE
+      ResolveConflictsOnUpdate: OVERWRITE
+
+  CoreDnsAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref AuthDbCluster
+      AddonName: coredns
+      ResolveConflictsOnCreate: OVERWRITE
+      ResolveConflictsOnUpdate: OVERWRITE
+
+  AuthServiceRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub '${ProjectName}/auth-service'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+  UserServiceRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub '${ProjectName}/user-service'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+  TaskServiceRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub '${ProjectName}/task-service'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+  FrontendRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub '${ProjectName}/frontend'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+
+Outputs:
+  ClusterName:
+    Description: EKS cluster name.
+    Value: !Ref AuthDbCluster
+
+  ClusterArn:
+    Description: EKS cluster ARN.
+    Value: !GetAtt AuthDbCluster.Arn
+
+  VpcId:
+    Description: VPC ID.
+    Value: !Ref AuthDbVpc
+
+  PublicSubnetIds:
+    Description: Public subnet IDs used by EKS.
+    Value: !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2]]
+
+  AuthServiceRepositoryUrl:
+    Description: ECR repository URL for auth-service.
+    Value: !GetAtt AuthServiceRepository.RepositoryUri
+
+  UserServiceRepositoryUrl:
+    Description: ECR repository URL for user-service.
+    Value: !GetAtt UserServiceRepository.RepositoryUri
+
+  TaskServiceRepositoryUrl:
+    Description: ECR repository URL for task-service.
+    Value: !GetAtt TaskServiceRepository.RepositoryUri
+
+  FrontendRepositoryUrl:
+    Description: ECR repository URL for frontend.
+    Value: !GetAtt FrontendRepository.RepositoryUri
+
+  KubectlConfigCommand:
+    Description: Command to configure kubectl against this EKS cluster.
+    Value: !Sub 'aws eks update-kubeconfig --region ${AWS::Region} --name ${AuthDbCluster}'
+
+  ArchitectureSummary:
+    Description: Short reminder of the visible system topology.
+    Value: 'frontend -> gateway -> auth-service/user-service/task-service -> MongoDB/RabbitMQ'
