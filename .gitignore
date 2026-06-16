@@ -13,6 +13,7 @@ dist/
 *.log
 .agents/
 .codex/
+graphify-out/
 
 .github/prompts/
 
